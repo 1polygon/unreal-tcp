@@ -52,7 +52,7 @@ uint32 FTcpClientThread::Run()
 
 	if (Connected)
 	{
-		// UE_LOG(LogTemp, Warning, TEXT("[Client] connected"));
+		UE_LOG(LogTemp, Log, TEXT("[TcpClient] connected"));
 	}
 
 	while (Connected)
@@ -68,7 +68,8 @@ uint32 FTcpClientThread::Run()
 			int32 Read;
 			Socket->Recv(Data.GetData(), Size, Read);
 
-			if (Data.Num() > 0)
+			// Read messages
+			while (Data.Num() > 0)
 			{
 				// Begin message
 				if (CurrentMessage.Type == None)
@@ -81,22 +82,26 @@ uint32 FTcpClientThread::Run()
 
 						// Remove header
 						constexpr int32 HeaderSize = 8;
-						if (Data.Num() - HeaderSize > 0)
-						{
-							Data.RemoveAt(0, HeaderSize);
-						}
+						Data.RemoveAt(0, HeaderSize);
 
-						// UE_LOG(LogTemp, Warning, TEXT("[Client] Begin receiving total of %i bytes"), CurrentMessage.Size);
+						UE_LOG(LogTemp, Verbose, TEXT("[TcpClient] Begin receiving total of %i bytes"),
+						       CurrentMessage.Size);
 					}
 				}
 
-				// Append data
+				// Append data if the current message isn't complete yet
 				if (ReceiveBuffer.Num() < CurrentMessage.Size)
 				{
 					if (Data.Num() > 0)
 					{
-						ReceiveBuffer.Append(Data);
-						// UE_LOG(LogTemp, Warning, TEXT("[Client] Receive %i bytes"), Data.Num());
+						// Only append data relevant for the current message
+						const int NumRelevantBytes = FMath::Min(Data.Num(), CurrentMessage.Size);
+						for (int i = 0; i < NumRelevantBytes; i++)
+						{
+							ReceiveBuffer.Push(Data[i]);
+						}
+						Data.RemoveAt(0, NumRelevantBytes);
+						UE_LOG(LogTemp, Verbose, TEXT("[TcpClient] Received segment of %i bytes"), NumRelevantBytes);
 					}
 				}
 
@@ -112,12 +117,14 @@ uint32 FTcpClientThread::Run()
 						ClosedByServer = true;
 						break;
 					case ETcpMessageType::Ping:
+						// Todo
 						break;
 					case ETcpMessageType::Pong:
+						// Todo
 						break;
 					case ETcpMessageType::Data:
 						{
-							// Copy received data so it can be used in the game thread
+							// Copy received data to be used in the game thread
 							TArray<uint8> DataCopy;
 							DataCopy.SetNum(ReceiveBuffer.Num());
 							FMemory::Memcpy(DataCopy.GetData(), ReceiveBuffer.GetData(),
@@ -140,7 +147,7 @@ uint32 FTcpClientThread::Run()
 					CurrentMessage.Type = None;
 					ReceiveBuffer.Empty();
 
-					/// UE_LOG(LogTemp, Warning, TEXT("[Client] Received total of %i bytes"), ReceivedBytes);
+					UE_LOG(LogTemp, Verbose, TEXT("[TcpClient] Received total of %i bytes"), ReceivedBytes);
 				}
 			}
 		}
@@ -153,6 +160,7 @@ uint32 FTcpClientThread::Run()
 			{
 				int32 BytesSent;
 				Socket->Send(DataToSend.GetData(), DataToSend.Num(), BytesSent);
+				UE_LOG(LogTemp, Verbose, TEXT("[TcpClient] Sent %i bytes"), BytesSent);
 			}
 		}
 
@@ -172,7 +180,10 @@ uint32 FTcpClientThread::Run()
 
 		if (Socket)
 		{
-			Socket->Wait(ESocketWaitConditions::WaitForReadOrWrite, FTimespan(ETimespan::TicksPerSecond * 100 / 1000));
+			if (SendQueue.IsEmpty())
+			{
+				FPlatformProcess::Sleep(0.01f);
+			}
 		}
 	}
 
@@ -218,6 +229,6 @@ void FTcpClientThread::CloseSocket(bool SendCloseMessage)
 			Socket = nullptr;
 		}
 		Connected = false;
-		// UE_LOG(LogTemp, Warning, TEXT("[Client] disconnected"));
+		UE_LOG(LogTemp, Log, TEXT("[TcpClient] disconnected"));
 	}
 }

@@ -53,7 +53,6 @@ void UTcpClient::SendFile(FString FilePath)
 			TArray<uint8> FileData;
 			if (FFileHelper::LoadFileToArray(FileData, *FilePath))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Send file of %i bytes"), FileData.Num());
 				Send(FileData);
 			}
 			else

@@ -50,7 +50,6 @@ void UTcpServer::SendFile(int32 SocketId, FString FilePath)
 			TArray<uint8> FileData;
 			if (FFileHelper::LoadFileToArray(FileData, *FilePath))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Send file of %i bytes to %i"), FileData.Num(), SocketId);
 				Send(SocketId, FileData);
 			}
 			else
