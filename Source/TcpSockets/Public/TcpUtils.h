@@ -16,8 +16,8 @@ class TCPSOCKETS_API UTcpUtils : public UBlueprintFunctionLibrary
 
 public:
 	UFUNCTION(BlueprintCallable, Category="TcpSockets")
-	static TArray<uint8> StringToByteArray(FString String);
+	static TArray<uint8> StringToBytes(FString String);
 
 	UFUNCTION(BlueprintCallable, Category="TcpSockets")
-	static FString ByteArrayToString(TArray<uint8> Bytes);
+	static FString BytesToString(TArray<uint8> Bytes);
 };

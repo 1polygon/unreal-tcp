@@ -13,7 +13,8 @@ public:
 	FSocket* Socket;
 	FTcpMessageHeader ReceiveHeader;
 	TArray<uint8> ReceiveBuffer;
-
+	int64 ReadOffset = 0;
+	
 private:
 
 public:

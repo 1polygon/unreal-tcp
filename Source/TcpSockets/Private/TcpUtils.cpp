@@ -4,7 +4,7 @@
 #include "TcpUtils.h"
 
 
-TArray<uint8> UTcpUtils::StringToByteArray(FString String)
+TArray<uint8> UTcpUtils::StringToBytes(FString String)
 {
 	TArray<uint8> ResultArray;
 	for (int32 Index = 0; Index < String.Len(); ++Index)
@@ -15,7 +15,7 @@ TArray<uint8> UTcpUtils::StringToByteArray(FString String)
 	return ResultArray;
 }
 
-FString UTcpUtils::ByteArrayToString(TArray<uint8> Bytes)
+FString UTcpUtils::BytesToString(TArray<uint8> Bytes)
 {
 	FString ResultString;
 	for (const uint8 Byte : Bytes)

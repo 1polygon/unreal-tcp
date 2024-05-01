@@ -65,11 +65,12 @@ uint32 FTcpClientThread::Run()
 		{
 			TArray<uint8> Data;
 			Data.SetNum(Size);
+			int32 ReadOffset = 0;
 			int32 Read;
 			Socket->Recv(Data.GetData(), Size, Read);
 
 			// Read messages
-			while (Data.Num() > 0)
+			while (Data.Num() - ReadOffset > 0)
 			{
 				// Begin message
 				if (CurrentMessage.Type == None)
@@ -78,11 +79,9 @@ uint32 FTcpClientThread::Run()
 					{
 						// Read header
 						FMemoryReader Reader(Data, true);
+						Reader.Seek(ReadOffset);
 						CurrentMessage.Deserialize(Reader);
-
-						// Remove header
-						constexpr int32 HeaderSize = 8;
-						Data.RemoveAt(0, HeaderSize);
+						ReadOffset += 8;
 
 						UE_LOG(LogTemp, Verbose, TEXT("[TcpClient] Begin receiving total of %i bytes"),
 						       CurrentMessage.Size);
@@ -92,15 +91,15 @@ uint32 FTcpClientThread::Run()
 				// Append data if the current message isn't complete yet
 				if (ReceiveBuffer.Num() < CurrentMessage.Size)
 				{
-					if (Data.Num() > 0)
+					if (Data.Num() - ReadOffset > 0)
 					{
 						// Only append data relevant for the current message
-						const int NumRelevantBytes = FMath::Min(Data.Num(), CurrentMessage.Size);
+						const int NumRelevantBytes = FMath::Min(Data.Num() - ReadOffset, CurrentMessage.Size);
 						for (int i = 0; i < NumRelevantBytes; i++)
 						{
-							ReceiveBuffer.Push(Data[i]);
+							ReceiveBuffer.Push(Data[ReadOffset + i]);
 						}
-						Data.RemoveAt(0, NumRelevantBytes);
+						ReadOffset += NumRelevantBytes;
 						UE_LOG(LogTemp, Verbose, TEXT("[TcpClient] Received segment of %i bytes"), NumRelevantBytes);
 					}
 				}
